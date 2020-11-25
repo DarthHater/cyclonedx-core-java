@@ -18,45 +18,51 @@
  */
 package org.cyclonedx.converters;
 
+import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
+import org.cyclonedx.model.ExtensibleExtension;
 import org.cyclonedx.model.vulnerability.Vulnerability1_0;
 
 public class ExtensionConverter
     implements Converter
 {
-
     @Override
     public void marshal(Object object, HierarchicalStreamWriter writer, MarshallingContext context) {
 
     }
 
-
     @Override
     public boolean canConvert(Class clazz) {
-        return clazz.equals(HashMap.class);
+        return AbstractMap.class.isAssignableFrom(clazz);
     }
 
     @Override
     public Object unmarshal(HierarchicalStreamReader reader, UnmarshallingContext context) {
+        ArrayList<ExtensibleExtension> list = new ArrayList<>();
         if(reader.getNodeName().equals("vulnerabilities")){
             Vulnerability1_0 vul=new Vulnerability1_0();
             String ref=reader.getAttribute(0);
             vul.setRef(ref);
 
-            if(reader.hasMoreChildren()){
+            while(reader.hasMoreChildren()){
                 reader.moveDown();
                 reader.moveDown();
                 vul.setId(reader.getValue());
-                return vul;
+                list.add(vul);
             }
-
+            reader.moveUp();
         }
-        return null;
+        Map<String, List<ExtensibleExtension>> map = new HashMap<>();
+        map.put("vulnerabilities", list);
+        return map;
     }
 }
