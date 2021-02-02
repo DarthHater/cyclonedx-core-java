@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -36,6 +37,7 @@ import org.cyclonedx.util.DependencyDeserializer;
 @JacksonXmlRootElement(localName = "bom")
 @JsonInclude(Include.NON_NULL)
 @JsonPropertyOrder({"metadata", "components", "externalReferences", "dependencies"})
+@JsonIgnoreProperties({"bomFormat"})
 public class Bom extends ExtensibleElement {
     @JacksonXmlProperty(isAttribute = true)
     private String xmlns;
@@ -50,7 +52,7 @@ public class Bom extends ExtensibleElement {
     private int version = 1;
     @JacksonXmlProperty(isAttribute = true)
     private String serialNumber;
-    @JsonIgnore
+    @JsonOnly
     private String specVersion;
 
     public Metadata getMetadata() {

@@ -18,7 +18,8 @@
  */
 package org.cyclonedx.model;
 
-import com.alibaba.fastjson.annotation.JSONField;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 
@@ -26,12 +27,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+@JsonPropertyOrder({"name", "url", "contact"})
 public class OrganizationalEntity extends ExtensibleElement {
 
     private String name;
 
     private List<String> url;
-    @JSONField(name = "contact")
+    @JsonProperty("contact")
     private List<OrganizationalContact> contact;
 
     public String getName() {
@@ -44,6 +46,7 @@ public class OrganizationalEntity extends ExtensibleElement {
 
     @JacksonXmlElementWrapper(useWrapping = false)
     @JacksonXmlProperty(localName = "url")
+    @JsonProperty("url")
     public List<String> getUrls() {
         return url;
     }
