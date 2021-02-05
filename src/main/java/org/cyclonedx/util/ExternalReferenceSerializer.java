@@ -59,7 +59,8 @@ public class ExternalReferenceSerializer extends StdSerializer<ExternalReference
             staxWriter.writeEndElement();
           }
           staxWriter.writeEndElement();
-        } catch (XMLStreamException ex) {
+        }
+        catch (XMLStreamException ex) {
           throw new IOException(ex);
         }
       }
