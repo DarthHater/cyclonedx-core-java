@@ -18,9 +18,11 @@
  */
 package org.cyclonedx.generators.xml;
 
+import java.io.IOException;
 import java.io.StringReader;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import org.cyclonedx.CycloneDxSchema;
@@ -30,6 +32,7 @@ import org.cyclonedx.util.CollectionTypeSerializer;
 import org.cyclonedx.util.VersionAnnotationIntrospector;
 import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
@@ -38,9 +41,37 @@ import javax.xml.parsers.ParserConfigurationException;
 
 abstract class AbstractBomXmlGenerator extends CycloneDxSchema implements BomXmlGenerator {
 
+    private final ObjectMapper mapper;
+
+    AbstractBomXmlGenerator() {
+        mapper = new XmlMapper();
+        setupObjectMapper(mapper);
+    }
+
     Document doc;
 
-    protected static String PROLOG = "<?xml version=\"1.0\"?>";
+    protected static final String PROLOG = "<?xml version=\"1.0\"?>";
+
+    private void setupObjectMapper(final ObjectMapper mapper) {
+        mapper.setAnnotationIntrospector(
+            new VersionAnnotationIntrospector(
+                String.valueOf(this.getSchemaVersion().getVersion())));
+
+        if (this.getSchemaVersion().getVersion() == 1.0) {
+            // NO-OP
+        } else if (this.getSchemaVersion().getVersion() == 1.1) {
+            registerDependencyModule(mapper, true);
+        } else if (this.getSchemaVersion().getVersion() == 1.2) {
+            registerDependencyModule(mapper, false);
+        }
+    }
+
+    private void registerDependencyModule(final ObjectMapper mapper, final boolean useNamespace) {
+        SimpleModule depModule = new SimpleModule();
+
+        depModule.setSerializers(new CollectionTypeSerializer(useNamespace));
+        mapper.registerModule(depModule);
+    }
 
     /**
      * Constructs a new document builder with security features enabled.
@@ -64,44 +95,21 @@ abstract class AbstractBomXmlGenerator extends CycloneDxSchema implements BomXml
         try {
             final DocumentBuilder docBuilder = buildSecureDocumentBuilder();
 
-            this.doc = docBuilder.parse(
-                new InputSource(
-                    new StringReader(
-                        toXML(bom))));
+            this.doc = docBuilder.parse(new InputSource(new StringReader(toXML(bom, false))));
 
             this.doc.setXmlStandalone(true);
 
             return this.doc;
-        } catch (Exception ex) {
+        } catch (SAXException | ParserConfigurationException | IOException | GeneratorException ex) {
             throw new ParserConfigurationException(ex.toString());
         }
     }
 
-    public String toXML(final Bom bom) throws GeneratorException {
-        XmlMapper mapper = new XmlMapper();
-
-        SimpleModule depModule = new SimpleModule();
-
-        mapper.setAnnotationIntrospector(
-            new VersionAnnotationIntrospector(
-                String.valueOf(this.getSchemaVersion().getVersion())));
-
-        if (this.getSchemaVersion().getVersion() == 1.0) {
-            bom.setXmlns(CycloneDxSchema.NS_BOM_10);
-        } else if (this.getSchemaVersion().getVersion() == 1.1) {
-            if (bom.getDependencies() != null && !bom.getDependencies().isEmpty()) {
-                depModule.setSerializers(new CollectionTypeSerializer(true));
-                mapper.registerModule(depModule);
-            }
-            bom.setXmlns(CycloneDxSchema.NS_BOM_11);
-        } else if (this.getSchemaVersion().getVersion() == 1.2) {
-            if (bom.getDependencies() != null && !bom.getDependencies().isEmpty()) {
-                depModule.setSerializers(new CollectionTypeSerializer(false));
-                mapper.registerModule(depModule);
-            }
-            bom.setXmlns(CycloneDxSchema.NS_BOM_12);
-        }
+    String toXML(final Bom bom, final boolean prettyPrint) throws GeneratorException {
         try {
+            if (prettyPrint) {
+                return PROLOG + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(bom);
+            }
             return PROLOG + mapper.writeValueAsString(bom);
         } catch (JsonProcessingException ex) {
             throw new GeneratorException(ex);

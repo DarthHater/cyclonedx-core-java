@@ -40,6 +40,8 @@ public class BomXmlGenerator11 extends AbstractBomXmlGenerator implements BomXml
      * @param bom the BOM to generate
      */
     public BomXmlGenerator11(final Bom bom) {
+        bom.setXmlns(CycloneDxSchema.NS_BOM_11);
+
         this.bom = bom;
     }
 
@@ -61,6 +63,6 @@ public class BomXmlGenerator11 extends AbstractBomXmlGenerator implements BomXml
     }
 
     public String toXmlString() throws GeneratorException {
-        return toXML(this.bom);
+        return toXML(this.bom, true);
     }
 }

@@ -18,6 +18,7 @@
  */
 package org.cyclonedx.parsers;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import org.cyclonedx.CycloneDxSchema;
 import org.cyclonedx.exception.ParseException;
@@ -55,6 +56,12 @@ import java.util.List;
 @SuppressWarnings("unused")
 public class XmlParser extends CycloneDxSchema implements Parser {
 
+    private final ObjectMapper mapper;
+
+    public XmlParser() {
+        mapper = new XmlMapper();
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -62,8 +69,8 @@ public class XmlParser extends CycloneDxSchema implements Parser {
         try {
             final String schemaVersion = identifySchemaVersion(
                     extractAllNamespaceDeclarations(new InputSource(new FileInputStream(file))));
-            XmlMapper mapper = new XmlMapper();
-            return mapper.readValue(file, Bom.class);
+
+            return injectSchemaVersion(mapper.readValue(file, Bom.class), schemaVersion);
         } catch (IOException | XPathExpressionException e) {
             throw new ParseException(e);
         }
@@ -77,8 +84,7 @@ public class XmlParser extends CycloneDxSchema implements Parser {
             final String schemaVersion = identifySchemaVersion(
                     extractAllNamespaceDeclarations(new InputSource(new ByteArrayInputStream(bomBytes))));
 
-            XmlMapper mapper = new XmlMapper();
-            return mapper.readValue(bomBytes, Bom.class);
+            return injectSchemaVersion(mapper.readValue(bomBytes, Bom.class), schemaVersion);
         } catch (IOException | XPathExpressionException e) {
             throw new ParseException(e);
         }
@@ -89,7 +95,6 @@ public class XmlParser extends CycloneDxSchema implements Parser {
      */
     public Bom parse(final InputStream inputStream) throws ParseException {
         try {
-            XmlMapper mapper = new XmlMapper();
             return mapper.readValue(inputStream, Bom.class);
         } catch (IOException e) {
             throw new ParseException(e);
@@ -101,7 +106,6 @@ public class XmlParser extends CycloneDxSchema implements Parser {
      */
     public Bom parse(final Reader reader) throws ParseException {
         try {
-            XmlMapper mapper = new XmlMapper();
             return mapper.readValue(reader, Bom.class);
         } catch (IOException e) {
             throw new ParseException(e);

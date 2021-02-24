@@ -29,43 +29,36 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.dataformat.xml.deser.FromXmlParser;
 import org.cyclonedx.model.ExtensibleType;
 import org.cyclonedx.model.Extension;
 import org.cyclonedx.model.Extension.ExtensionType;
 import org.cyclonedx.model.vulnerability.Rating;
-import org.cyclonedx.model.vulnerability.Vulnerability1_0;
-import org.cyclonedx.model.vulnerability.Vulnerability1_0.Advisory;
-import org.cyclonedx.model.vulnerability.Vulnerability1_0.Cwe;
-import org.cyclonedx.model.vulnerability.Vulnerability1_0.Recommendation;
-import org.cyclonedx.model.vulnerability.Vulnerability1_0.Score;
-import org.cyclonedx.model.vulnerability.Vulnerability1_0.ScoreSource;
-import org.cyclonedx.model.vulnerability.Vulnerability1_0.Severity;
-import org.cyclonedx.model.vulnerability.Vulnerability1_0.Source;
+import org.cyclonedx.model.vulnerability.Vulnerability10;
+import org.cyclonedx.model.vulnerability.Vulnerability10.Advisory;
+import org.cyclonedx.model.vulnerability.Vulnerability10.Cwe;
+import org.cyclonedx.model.vulnerability.Vulnerability10.Recommendation;
+import org.cyclonedx.model.vulnerability.Vulnerability10.Score;
+import org.cyclonedx.model.vulnerability.Vulnerability10.ScoreSource;
+import org.cyclonedx.model.vulnerability.Vulnerability10.Severity;
+import org.cyclonedx.model.vulnerability.Vulnerability10.Source;
 
 public class ExtensionDeserializer extends StdDeserializer<Extension>
 {
-  private static final String VULNERABILITIES = "vulnerabilities";
-  private static final String VULNERABILITY = "vulnerability";
-
-  private ObjectMapper objectMapper;
-
   public ExtensionDeserializer() {
     this(Extension.class);
   }
 
   public ExtensionDeserializer(final Class vc) {
     super(vc);
-    this.objectMapper = new ObjectMapper();
   }
 
   @Override
   public Extension deserialize(
       final JsonParser p, final DeserializationContext ctxt) throws IOException
   {
-    if (p.currentName().equals(VULNERABILITIES)) {
+    if (p.currentName().equals(Vulnerability10.VULNERABILITIES)) {
       if (p instanceof FromXmlParser) {
         return processVulnerabilities(p);
       }
@@ -73,56 +66,56 @@ public class ExtensionDeserializer extends StdDeserializer<Extension>
     return null;
   }
 
-  private Extension processVulnerabilities(final JsonParser p) throws IOException {
-    TreeNode on =  p.readValueAsTree();
-    JsonNode vn = (JsonNode) on.get(VULNERABILITY);
-    List<ExtensibleType> extList = new ArrayList<>();
-    if (vn.isArray() && !vn.isEmpty()) {
-      for (JsonNode jn : vn) {
-        Vulnerability1_0 vuln = processVulnerability(jn);
-        extList.add(vuln);
+  private Extension processVulnerabilities(final JsonParser parser) throws IOException {
+    TreeNode treeNode =  parser.readValueAsTree();
+    JsonNode vulnerabilityNode = (JsonNode) treeNode.get(Vulnerability10.NAME);
+    List<ExtensibleType> extensibleTypes = new ArrayList<>();
+    if (vulnerabilityNode.isArray() && !vulnerabilityNode.isEmpty()) {
+      for (JsonNode jn : vulnerabilityNode) {
+        Vulnerability10 vulnerability = processVulnerability(jn);
+        extensibleTypes.add(vulnerability);
       }
     } else {
-      Vulnerability1_0 vuln = processVulnerability(vn);
-      extList.add(vuln);
+      Vulnerability10 vuln = processVulnerability(vulnerabilityNode);
+      extensibleTypes.add(vuln);
     }
-    if (!extList.isEmpty()) {
-      return createAndReturnExtension(ExtensionType.VULNERABILITIES, extList);
+    if (!extensibleTypes.isEmpty()) {
+      return createAndReturnExtension(ExtensionType.VULNERABILITIES, extensibleTypes);
     }
     return null;
   }
 
-  private Vulnerability1_0 processVulnerability(final JsonNode vulnJson) {
-    Vulnerability1_0 vuln = new Vulnerability1_0();
+  private Vulnerability10 processVulnerability(final JsonNode vulnJson) {
+    Vulnerability10 vuln = new Vulnerability10();
     for (Iterator<String> it = vulnJson.fieldNames(); it.hasNext(); ) {
       String field = it.next();
       switch (field) {
-        case "ref":
+        case Vulnerability10.REF:
           vuln.setRef(vulnJson.get(field).textValue());
           break;
-        case "id":
+        case Vulnerability10.ID:
           vuln.setId(vulnJson.get(field).textValue());
           break;
-        case "source":
+        case Vulnerability10.SOURCE:
           vuln.setSource(processSource(vulnJson.get(field)));
           break;
-        case "ratings":
+        case Vulnerability10.RATINGS:
           vuln.setRatings(processRatings(vulnJson.get(field)));
           break;
-        case "cwes":
+        case Vulnerability10.CWES:
           vuln.setCwes(processCwes(vulnJson.get(field)));
           break;
-        case "description":
+        case Vulnerability10.DESCRIPTION:
           vuln.setDescription(vulnJson.get(field).textValue());
           break;
-        case "recommendations":
+        case Vulnerability10.RECOMMENDATIONS:
           vuln.setRecommendations(processRecommendations(vulnJson.get(field)));
           break;
-        case "advisories":
+        case Vulnerability10.ADVISORIES:
           vuln.setAdvisories(processAdvisories(vulnJson.get(field)));
           break;
         default:
-          // Can't do anything so don't do anything
+          // Unsupported field, skipped and not deserialized
           break;
       }
     }
@@ -131,7 +124,7 @@ public class ExtensionDeserializer extends StdDeserializer<Extension>
 
   private List<Advisory> processAdvisories(final JsonNode advisories) {
     List<Advisory> advisoryList = new ArrayList<>();
-    JsonNode adv = advisories.get("advisory");
+    JsonNode adv = advisories.get(Vulnerability10.ADVISORY);
     if (adv.isArray() && !adv.isEmpty()) {
       for (JsonNode a : adv) {
         advisoryList.add(processAdvisory(a));
@@ -150,7 +143,7 @@ public class ExtensionDeserializer extends StdDeserializer<Extension>
 
   private List<Recommendation> processRecommendations(final JsonNode recommendations) {
     List<Recommendation> recommendationsList = new ArrayList<>();
-    JsonNode rec = recommendations.get("recommendation");
+    JsonNode rec = recommendations.get(Vulnerability10.RECOMMENDATION);
     if (rec.isArray() && !rec.isEmpty()) {
       for (JsonNode r : rec) {
         recommendationsList.add(processRecommendation(r));
@@ -169,7 +162,7 @@ public class ExtensionDeserializer extends StdDeserializer<Extension>
 
   private List<Cwe> processCwes(final JsonNode cwes) {
     List<Cwe> cweList = new ArrayList<>();
-    JsonNode cwe = cwes.get("cwe");
+    JsonNode cwe = cwes.get(Vulnerability10.CWE);
     if (cwe.isArray() && !cwe.isEmpty()) {
       for (JsonNode c : cwe) {
         cweList.add(processCwe(c));
@@ -186,19 +179,19 @@ public class ExtensionDeserializer extends StdDeserializer<Extension>
     return c;
   }
 
-  private Vulnerability1_0.Source processSource(final JsonNode source) {
-    Source sauce = new Source();
-    sauce.setName(getAsString("name", source));
-    if (source.get("url") != null) {
+  private Vulnerability10.Source processSource(final JsonNode sourceNode) {
+    Source source = new Source();
+    source.setName(getAsString("name", sourceNode));
+    if (sourceNode.get(Vulnerability10.URL) != null) {
       try {
-        sauce.setUrl(new URL(source.get("url").textValue()));
+        source.setUrl(new URL(sourceNode.get(Vulnerability10.URL).textValue()));
       }
       catch (MalformedURLException e) {
         // Should we throw an exception? Is this worth stopping things over?
         e.printStackTrace();
       }
     }
-    return sauce;
+    return source;
   }
 
   private List<Rating> processRatings(final JsonNode ratings) {
@@ -215,18 +208,18 @@ public class ExtensionDeserializer extends StdDeserializer<Extension>
 
   private Rating processRating(final JsonNode ratingNode) {
     Rating rating = new Rating();
-    JsonNode r = ratingNode.get("rating");
-    if (r.get("score") != null) {
+    JsonNode r = ratingNode.get(Vulnerability10.RATING);
+    if (r.get(Vulnerability10.SCORE) != null) {
       Score score = new Score();
-      JsonNode s = r.get("score");
-      score.setBase(getAsDouble("base", s));
-      score.setImpact(getAsDouble("impact", s));
-      score.setExploitability(getAsDouble("exploitability", s));
+      JsonNode s = r.get(Vulnerability10.SCORE);
+      score.setBase(getAsDouble(Vulnerability10.BASE, s));
+      score.setImpact(getAsDouble(Vulnerability10.IMPACT, s));
+      score.setExploitability(getAsDouble(Vulnerability10.EXPLOITABILITY, s));
       rating.setScore(score);
     }
-    rating.setSeverity(Severity.fromString(getAsString("severity", r)));
-    rating.setMethod(ScoreSource.fromString(getAsString("method", r)));
-    rating.setVector(getAsString("vector", r));
+    rating.setSeverity(Severity.fromString(getAsString(Vulnerability10.SEVERITY, r)));
+    rating.setMethod(ScoreSource.fromString(getAsString(Vulnerability10.METHOD, r)));
+    rating.setVector(getAsString(Vulnerability10.VECTOR, r));
 
     return rating;
   }
@@ -235,8 +228,8 @@ public class ExtensionDeserializer extends StdDeserializer<Extension>
     if (extType == ExtensionType.VULNERABILITIES) {
       Extension ext = new Extension(extType, list);
 
-      ext.setNamespaceURI("http://cyclonedx.org/schema/ext/vulnerability/1.0");
-      ext.setPrefix("v");
+      ext.setNamespaceURI(Vulnerability10.NAMESPACE_URI);
+      ext.setPrefix(Vulnerability10.PREFIX);
 
       return ext;
     }
